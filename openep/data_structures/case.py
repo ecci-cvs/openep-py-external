@@ -83,6 +83,7 @@ import scipy.stats
 import pyvista
 
 from .surface import Fields
+from .arrows import Arrows
 from .electric import Electric, Electrogram, Annotations, ElectricSurface
 from .ablation import Ablation
 from ..analysis.analyse import Analyse
@@ -122,12 +123,14 @@ class Case:
         electric: Electric,
         ablation: Optional[Ablation] = None,
         notes: Optional[List] = None,
+        arrows: Optional[Arrows] = None,
     ):
 
         self.name = name
         self.points = points
         self.indices = indices
         self.fields = fields
+        self.arrows = arrows
         self.ablation = ablation
         self.electric = electric
         self.notes = notes
