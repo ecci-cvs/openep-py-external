@@ -63,6 +63,7 @@ from .matlab import _load_mat_v73, _load_mat_below_v73
 from ..data_structures.surface import extract_surface_data, Fields
 from ..data_structures.electric import extract_electric_data, Electric
 from ..data_structures.ablation import extract_ablation_data, Ablation
+from ..data_structures.arrows import Arrows
 from ..data_structures.case import Case
 
 __all__ = ["load_openep_mat", "_load_mat", "load_opencarp", "load_circle_cvi", "load_vtk"]
@@ -158,28 +159,37 @@ def load_opencarp(
 
     points_data = np.loadtxt(points, skiprows=1)
     points_data *= scale_points
-    indices_data = np.loadtxt(indices, skiprows=1, usecols=[1, 2, 3], dtype=int)
-    cell_region = np.loadtxt(indices, skiprows=1, usecols=4, dtype=int)
+    fibres_data = None if fibres is None else np.loadtxt(fibres)
 
-    longitudinal_fibres = None
-    transverse_fibres = None
-    if fibres is not None:
-        fibres_data = np.loadtxt(fibres, skiprows=1, dtype=float)
-        longitudinal_fibres = fibres_data[:, :3]
-        if fibres_data.shape[1] == 6:
-            transverse_fibres = fibres_data[:, 3:]
+    indices_data, cell_region_data, linear_connection_data = [], [], []
+    with open(indices) as elem_file:
+        data = elem_file.readlines()
+        for elem in data:
+            parts = elem.strip().split()
+            if parts[0] == 'Tr':
+                indices_data.append(list(map(int, parts[1:4])))
+                cell_region_data.append(int(parts[4]))
+            elif parts[0] == 'Ln':
+                linear_connection_data.append(list(map(int, parts[1:4])))
+    indices_data = np.array(indices_data)
+    cell_region = np.array(cell_region_data)
+    linear_connection_data = np.array(linear_connection_data)
 
-    # Create empty data structures for pass to Case
+    arrows = Arrows(
+        fibres=fibres_data,
+        linear_connections=linear_connection_data
+    )
+
     fields = Fields(
         cell_region=cell_region,
-        longitudinal_fibres=longitudinal_fibres,
-        transverse_fibres=transverse_fibres,
+        longitudinal_fibres=None,
+        transverse_fibres=None,
     )
     electric = Electric()
     ablation = Ablation()
     notes = np.asarray([], dtype=object)
 
-    return Case(name, points_data, indices_data, fields, electric, ablation, notes)
+    return Case(name, points_data, indices_data, fields, electric, ablation, notes, arrows)
 
 
 def load_vtk(filename, name=None):
