@@ -106,47 +106,25 @@ def export_openCARP(
 
     # Save elements info
     n_triangles = case.indices.shape[0]
-    cell_type = np.full(n_triangles, fill_value="Tr")
+    n_lines = n_triangles + case.arrows.linear_connections.shape[0]
     cell_region = case.fields.cell_region if case.fields.cell_region is not None else np.zeros(n_triangles, dtype=int)
 
-    elements = np.concatenate(
-        [
-            cell_type[:, np.newaxis],
-            case.indices,
-            cell_region[:, np.newaxis],
-        ],
-        axis=1,
-        dtype=object,
-    )
+    elem_data = ""
+    for indices, region in zip(case.indices, cell_region):
+        elem_data += 'Tr ' + ' '.join(map(str, indices)) + ' ' + str(region) + '\n'
 
-    np.savetxt(
-        output_path.with_suffix(".elem"),
-        elements,
-        fmt="%s %d %d %d %d",
-        header=str(n_triangles),
-        comments='',
-    )
+    for indices in case.arrows.linear_connections:
+        elem_data += 'Ln ' + ' '.join(map(str, indices)) + '\n'
+
+    with open(output_path.with_suffix('.elem'), 'w') as file:
+        file.write(f'{n_lines}\n')
+        file.write(elem_data)
 
     # Save fibres
-    n_fibre_vectors = 2 if export_transverse_fibres else 1
-    fibres = np.zeros((n_triangles, n_fibre_vectors * 3), dtype=float)
-
-    if case.fields.longitudinal_fibres is not None:
-        fibres[:, :3] = case.fields.longitudinal_fibres
-    else:
-        fibres[:, 0] = 1
-
-    if export_transverse_fibres:
-        if case.fields.transverse_fibres is not None:
-            fibres[:, 3:] = case.fields.transverse_fibres
-        else:
-            fibres[:, 3] = 1
-
     np.savetxt(
         output_path.with_suffix('.lon'),
-        fibres,
+        case.arrows.fibres,
         fmt="%.6f",
-        header=str(n_fibre_vectors),
         comments='',
     )
 
