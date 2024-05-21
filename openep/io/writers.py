@@ -105,28 +105,30 @@ def export_openCARP(
     )
 
     # Save elements info
-    n_triangles = case.indices.shape[0]
-    n_lines = n_triangles + case.arrows.linear_connections.shape[0]
+    n_lines = case.indices.shape[0]
     cell_region = case.fields.cell_region if case.fields.cell_region is not None else np.zeros(n_triangles, dtype=int)
 
     elem_data = ""
     for indices, region in zip(case.indices, cell_region):
         elem_data += 'Tr ' + ' '.join(map(str, indices)) + ' ' + str(region) + '\n'
 
-    for indices in case.arrows.linear_connections:
-        elem_data += 'Ln ' + ' '.join(map(str, indices)) + '\n'
+    if case.arrows.linear_connections is not None:
+        n_lines += case.arrows.linear_connections.shape[0]
+        for indices in case.arrows.linear_connections:
+            elem_data += 'Ln ' + ' '.join(map(str, indices)) + '\n'
 
     with open(output_path.with_suffix('.elem'), 'w') as file:
         file.write(f'{n_lines}\n')
         file.write(elem_data)
 
     # Save fibres
-    np.savetxt(
-        output_path.with_suffix('.lon'),
-        case.arrows.fibres,
-        fmt="%.6f",
-        comments='',
-    )
+    if case.arrows is not None:
+        np.savetxt(
+            output_path.with_suffix('.lon'),
+            case.arrows.fibres,
+            fmt="%.6f",
+            comments='',
+        )
 
     # Saving pacing sites if they exist
     if case.fields.pacing_site is None:
