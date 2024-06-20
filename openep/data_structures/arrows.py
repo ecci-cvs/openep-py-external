@@ -27,8 +27,8 @@ class Arrows:
     def __getitem__(self, arrow):
         try:
             return self.__dict__[arrow]
-        except KeyError as e:
-            raise ValueError(f"There is no arrow '{arrow}'.") from e
+        except KeyError:
+            raise ValueError(f"There is no arrow '{arrow}'.")
 
     def __setitem__(self, arrow, value):
         if arrow not in self.__dict__.keys():

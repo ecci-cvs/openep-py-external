@@ -130,10 +130,10 @@ class Case:
         self.points = points
         self.indices = indices
         self.fields = fields
-        self.arrows = arrows
         self.ablation = ablation
         self.electric = electric
         self.notes = notes
+        self.arrows = Arrows() if arrows is None else arrows
         self.analyse = Analyse(case=self)
 
     def __repr__(self):
