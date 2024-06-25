@@ -64,6 +64,7 @@ __all__ = [
     "export_openCARP",
     "export_openep_mat",
     "export_vtk",
+    "export_vtx",
 ]
 
 
@@ -72,6 +73,7 @@ def export_openCARP(
     prefix: str,
     scale_points: float = 1,
     export_transverse_fibres: bool = True,
+    export_pacing_site: bool = True,
 ):
     """Export mesh data from an OpenEP data to openCARP format.
 
@@ -122,7 +124,7 @@ def export_openCARP(
         file.write(elem_data)
 
     # Save fibres
-    if case.arrows is not None:
+    if case.arrows.fibres is not None:
         np.savetxt(
             output_path.with_suffix('.lon'),
             case.arrows.fibres,
@@ -131,7 +133,7 @@ def export_openCARP(
         )
 
     # Saving pacing sites if they exist
-    if case.fields.pacing_site is None:
+    if case.fields.pacing_site is None or not export_pacing_site:
         return
 
     # Ignore all -1 values, as these points do not belong to any pacing site
@@ -147,6 +149,58 @@ def export_openCARP(
             comments='',
             fmt='%d',
         )
+
+
+def export_vtx(
+    case: Case,
+    prefix: str,
+    pacing_site_internal_name: str
+):
+    """
+    Export vertex indices for a specified pacing site to a .vtx file.
+
+    Args:
+    - case (Case): The case object containing the pacing site and landmark information.
+    - prefix (str): The file path prefix for saving the output .vtx file.
+    - pacing_site_internal_name (str): The tag of the pacing site to export.
+
+    Returns:
+    - pathlib.Path: The path to the created .vtx file, or None if the pacing site is not found.
+
+    Raises:
+    - IndexError: If the specified pacing site name is not found within the case landmarks.
+    """
+    # TODO: Need to improve indexing method to find pacing site from landmarks,
+    #  currently finds pacing sites using tag string.
+
+    output_path = pathlib.Path(prefix).resolve()
+
+    if case.fields.pacing_site is None:
+        return
+
+    # This extracts the pacing sites from all landmarks by checking if the tag is of the form "Pacing site 1"
+    landmarks = case.electric.landmark_points
+    try:
+        landmark_index = np.where(landmarks.internal_names == pacing_site_internal_name)[0][0]
+    except IndexError:
+        raise IndexError(f"Pacing site: Expecting {landmarks.internal_names}, received \"{pacing_site_internal_name}\".")
+
+    landmark_name = landmarks.names[landmark_index]
+    site_index = int(landmark_name.replace('Pacing site ', ''))
+
+    pacing_site_points = np.nonzero(case.fields.pacing_site == site_index)[0]
+    n_points = pacing_site_points.size
+
+    output_path_with_suffix = output_path.with_name(f'{output_path.name}_{pacing_site_internal_name}.vtx')
+
+    np.savetxt(
+        output_path_with_suffix,
+        pacing_site_points,
+        header=f'{n_points}\nintra',
+        comments='',
+        fmt='%d',
+    )
+    return output_path_with_suffix
 
 
 def export_openep_mat(
