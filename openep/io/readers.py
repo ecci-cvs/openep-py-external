@@ -53,6 +53,7 @@ and methods of `Case`.
 """
 
 import os
+import re
 import scipy.io
 
 import numpy as np
@@ -291,3 +292,43 @@ def load_circle_cvi(filename, dicoms_directory, extract_epi=True, extract_endo=T
         return epi_mesh
     elif extract_endo:
         return endo_mesh
+
+
+def load_igb(igb_filepath):
+    """
+    Reads an .igb file, returning the data and header information.
+
+    Args:
+        igb_filepath (str): Path to the .igb file.
+
+    Returns:
+        tuple:
+            - numpy.ndarray: 2D array of the file's data.
+            - dict: Contents of the header including 't' value (time steps) and other parameters.
+    """
+    with open(igb_filepath, 'rb') as file:
+        header = file.read(1024).decode('utf-8')
+        header = header.replace('\r', ' ').replace('\n', ' ').replace('\0', ' ')
+        hdr_content = {}
+
+        # Parse the header to dict format
+        for part in header.split():
+            key, value = part.split(':')
+            if key in ['x', 'y', 'z', 't', 'bin', 'num', 'lut', 'comp']:
+                hdr_content[key] = int(value)
+            elif key in ['facteur','zero','epais'] or key.startswith('org_') or key.startswith('dim_') or key.startswith('inc_'):
+                hdr_content[key] = float(value)
+            else:
+                hdr_content[key] = value
+
+        # Process file data
+        words = header.split()
+        word = [int(re.split(r"(\d+)", w)[1]) for w in words[:4]]
+        nnode = word[0] * word[1] * word[2]
+        size = os.path.getsize(igb_filepath) // 4 // nnode
+
+        file.seek(1024)
+        data = np.fromfile(file, dtype=np.float32, count=size * nnode)
+        data = data.reshape((size, nnode)).transpose()
+
+    return data, hdr_content
