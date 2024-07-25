@@ -67,7 +67,7 @@ from ..data_structures.ablation import extract_ablation_data, Ablation
 from ..data_structures.arrows import Arrows
 from ..data_structures.case import Case
 
-__all__ = ["load_openep_mat", "_load_mat", "load_opencarp", "load_circle_cvi", "load_vtk"]
+__all__ = ["load_openep_mat", "_load_mat", "load_opencarp", "load_circle_cvi", "load_vtk", "load_igb"]
 
 
 def _check_mat_version_73(filename):
