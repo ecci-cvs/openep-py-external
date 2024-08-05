@@ -124,7 +124,7 @@ def export_openCARP(
         file.write(elem_data)
 
     if not case.arrows.fibres:
-        case.arrows.fibres = np.array(case.points)
+        case.arrows.fibres = np.array(case.points)*0
         case.arrows.fibres[:, 0] = 1
 
     # Save fibres
