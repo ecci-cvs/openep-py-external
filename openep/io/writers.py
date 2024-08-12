@@ -51,9 +51,11 @@ If a case has no fibre orientations (in `case.fields.longitudinal_fibres` and
 
 """
 
-import pathlib
+import pandas as pd
 import numpy as np
 import scipy.io
+import pathlib
+
 
 from openep.data_structures.ablation import Ablation
 from openep.data_structures.case import Case
@@ -65,6 +67,7 @@ __all__ = [
     "export_openep_mat",
     "export_vtk",
     "export_vtx",
+    "export_csv"
 ]
 
 
@@ -270,6 +273,48 @@ def _add_surface_maps(surface_data, **kwargs):
         }
 
     return surface_data
+
+
+def export_csv(
+        case: Case,
+        filename: str,
+        selections: dict,
+):
+
+    """Export data in CSV format.
+
+    Saves selected field data.
+
+    Args:
+        case (Case): dataset to be exported
+        filename (str): name of file to be written
+        selections (dict): the data field name and flag whether to export or not
+    """
+
+    available_exports = {
+        'Bipolar voltage': case.fields.bipolar_voltage,
+        'Unipolar voltage': case.fields.unipolar_voltage,
+        'LAT': case.fields.local_activation_time,
+        'Force': case.fields.force,
+        'Impedance': case.fields.impedance,
+        'Thickness': case.fields.thickness,
+        'Cell region': case.fields.cell_region,
+        'Pacing site': case.fields.pacing_site,
+        'Conduction velocity': case.fields.conduction_velocity,
+        'Divergence': case.fields.cv_divergence,
+    }
+
+    df = pd.DataFrame()
+
+    for field_name, checked in selections.items():
+        if checked:
+            field_data = available_exports.get(field_name)
+            if field_data is not None:
+                df[field_name] = pd.Series(field_data)
+            else:
+                df[field_name] = pd.NA
+
+    df.to_csv(filename, index=False, encoding='utf-8')
 
 
 def _add_electric_signal_props(electric_data, **kwargs):
