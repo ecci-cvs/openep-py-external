@@ -187,18 +187,22 @@ def extract_surface_data(surface_data):
     if isinstance(pacing_site, np.ndarray):
         pacing_site = None if pacing_site.size == 0 else pacing_site.astype(int)
 
-    try:
-        conduction_velocity = surface_data['signalMaps']['conduction_velocity_field'].get('value', None)
-        if isinstance(conduction_velocity, np.ndarray):
-            conduction_velocity = None if conduction_velocity.size == 0 else conduction_velocity.astype(float)
-    except KeyError:
-        conduction_velocity = None
+    if surface_data.get('signalMaps'):
+        try:
+            conduction_velocity = surface_data['signalMaps']['conduction_velocity_field'].get('value', None)
+            if isinstance(conduction_velocity, np.ndarray):
+                conduction_velocity = None if conduction_velocity.size == 0 else conduction_velocity.astype(float)
+        except KeyError:
+            conduction_velocity = None
 
-    try:
-        cv_divergence = surface_data['signalMaps']['divergence_field'].get('value', None)
-        if isinstance(cv_divergence, np.ndarray):
-            cv_divergence = None if cv_divergence.size == 0 else cv_divergence.astype(float)
-    except KeyError:
+        try:
+            cv_divergence = surface_data['signalMaps']['divergence_field'].get('value', None)
+            if isinstance(cv_divergence, np.ndarray):
+                cv_divergence = None if cv_divergence.size == 0 else cv_divergence.astype(float)
+        except KeyError:
+            cv_divergence = None
+    else:
+        conduction_velocity = None
         cv_divergence = None
 
     fields = Fields(
