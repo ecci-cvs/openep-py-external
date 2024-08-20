@@ -56,7 +56,6 @@ import numpy as np
 import scipy.io
 import pathlib
 
-
 from openep.data_structures.ablation import Ablation
 from openep.data_structures.case import Case
 from openep.data_structures.surface import Fields
@@ -109,22 +108,41 @@ def export_openCARP(
         comments='',
     )
 
-    # Save elements info
-    n_lines = case.indices.shape[0]
+    # Total number of lines
+    n_triangles = case.indices.shape[0]
+    n_lin_conns = 0 if case.arrows.linear_connections is None else case.arrows.linear_connections.shape[0]
+    n_lines = n_triangles + n_lin_conns
+
+    # Save triangulation elements info
+    cell_type = np.full(n_triangles, fill_value="Tr")
     cell_region = case.fields.cell_region if case.fields.cell_region is not None else np.zeros(n_triangles, dtype=int)
 
-    elem_data = ""
-    for indices, region in zip(case.indices, cell_region):
-        elem_data += 'Tr ' + ' '.join(map(str, indices)) + ' ' + str(region) + '\n'
+    combined_cell_data = [cell_type[:, np.newaxis], case.indices, cell_region[:, np.newaxis]]
+    combined_cell_data = np.concatenate(combined_cell_data, axis=1, dtype=object)
 
+    np.savetxt(
+        output_path.with_suffix(".elem"),
+        combined_cell_data,
+        fmt="%s %d %d %d %d",
+        header=str(n_lines),
+        comments='',
+    )
+
+    # Save linear connections info
     if case.arrows.linear_connections is not None:
-        n_lines += case.arrows.linear_connections.shape[0]
-        for indices in case.arrows.linear_connections:
-            elem_data += 'Ln ' + ' '.join(map(str, indices)) + '\n'
+        conn_type = np.full(n_lin_conns, fill_value="Ln")
+        ln_region = case.arrows.linear_connection_regions if case.arrows.linear_connection_regions is not None else np.zeros(n_lin_conns, dtype=int)
 
-    with open(output_path.with_suffix('.elem'), 'w') as file:
-        file.write(f'{n_lines}\n')
-        file.write(elem_data)
+        combined_ln_conn_data = [conn_type[:, np.newaxis], case.arrows.linear_connections, ln_region[:, np.newaxis]]
+        combined_ln_conn_data = np.concatenate(combined_ln_conn_data, axis=1, dtype=object)
+
+        # append to the elem file
+        with open(output_path.with_suffix(".elem"), 'a') as elem_file:
+            np.savetxt(
+                elem_file,
+                combined_ln_conn_data,
+                fmt="%s %d %d %d",
+            )
 
     # Save fibres
     if case.arrows.fibres is not None:
@@ -141,7 +159,7 @@ def export_openCARP(
 
     # Ignore all -1 values, as these points do not belong to any pacing site
     for site_index in np.unique(case.fields.pacing_site)[1:]:
-        
+
         pacing_site_points = np.nonzero(case.fields.pacing_site == site_index)[0]
         n_points = pacing_site_points.size
 
