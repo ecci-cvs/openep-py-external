@@ -66,6 +66,9 @@ from attr import attrs
 import numpy as np
 import scipy.interpolate
 
+import sys
+import os
+
 __all__ = [
     'get_mapping_points_within_woi',
     'get_electrograms_at_points',
@@ -284,7 +287,6 @@ def get_sample_indices_within_woi(case, buffer=50, indices=None):
     )
 
     return within_woi  # This is now a 2D array that can be used to index into electrograms and calculate voltages.
-
 
 def calculate_voltage_from_electrograms(case, buffer=50, bipolar=True, indices=None):
     """

@@ -81,6 +81,7 @@ from typing import Optional, Tuple, List
 import numpy as np
 import scipy.stats
 import pyvista
+import pycpd
 
 from .surface import Fields
 from .electric import Electric, Electrogram, Annotations, ElectricSurface
@@ -261,6 +262,40 @@ class Case:
             normals=mesh.point_normals[nearest_point_indices],
             is_electrical=self.electric._is_electrical
         )
+
+    def cpd_registration_init(self, reg_type : str, target : 'Case'):
+        """
+        Initializes the registration process using the specified registration type and target case.
+        Parameters:
+        - reg_type (str): The type of registration to be performed. Valid options are 'rigid', 'affine', and 'deformable'.
+        - target (Case): The target case to register to.
+        Returns:
+        None
+        """        
+        print(f'init_registration: {reg_type}')
+        reg_init = {
+            'rigid': pycpd.RigidRegistration,
+            'affine': pycpd.AffineRegistration,
+            'deformable': pycpd.DeformableRegistration,
+        } 
+        source_points = self.points
+        target_points = target.points
+        self.reg = reg_init[reg_type](**{'X': target_points, 'Y': source_points})
+
+    def cpd_registration_run_single_iteration(self : 'Case', inplace : bool = True) -> np.ndarray:
+        """
+        Run a single iteration of the Coherent Point Drift (CPD) registration algorithm.
+        Parameters:
+        - self ('Case'): The Case object on which the registration algorithm will be applied.
+        - inplace (bool): If True, the registered points will be stored in the 'points' attribute of the Case object. 
+                          If False, the registered points will be returned without modifying the Case object.
+        Returns:
+        - numpy.ndarray: The registered points after a single iteration of the CPD registration algorithm.
+        """        
+        self.reg.iterate()
+        if inplace:
+            self.points = self.reg.TY
+        return self.reg.TY
 
     def separate_regions(self):
         """Create a list of Case objects by separating regions defined in case.fields.cell_regions."""
