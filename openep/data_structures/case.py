@@ -297,6 +297,17 @@ class Case:
             self.points = self.reg.TY
         return self.reg.TY
 
+    def cpd_registration_run_all_iterations(self : 'Case', visualize_cb : callable = None) -> None:
+        """
+        Run all iterations of the Coherent Point Drift (CPD) registration algorithm.
+        Parameters:
+        - self ('Case'): The Case object on which the registration algorithm will be applied.
+        - visualize_cb (callable): A callback function that will be called after each iteration of the registration algorithm.
+        Returns:
+        None
+        """        
+        self.reg.register(visualize_cb)
+
     def separate_regions(self):
         """Create a list of Case objects by separating regions defined in case.fields.cell_regions."""
 
