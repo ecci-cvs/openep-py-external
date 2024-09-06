@@ -266,32 +266,40 @@ class Case:
     def cpd_registration_init(self, reg_type : str, target : 'Case'):
         """
         Initializes the registration process using the specified registration type and target case.
-        Parameters:
-        - reg_type (str): The type of registration to be performed. Valid options are 'rigid', 'affine', and 'deformable'.
-        - target (Case): The target case to register to.
+
+        Args:
+            reg_type (str): The type of registration to be performed. Valid options are 'rigid', 'affine', and 'deformable'.
+            target (Case): The target case to register to.
+
         Returns:
-        None
-        """        
-        print(f'init_registration: {reg_type}')
-        reg_init = {
-            'rigid': pycpd.RigidRegistration,
-            'affine': pycpd.AffineRegistration,
-            'deformable': pycpd.DeformableRegistration,
-        } 
+            None
+        """
         source_points = self.points
         target_points = target.points
-        self.reg = reg_init[reg_type](**{'X': target_points, 'Y': source_points})
+
+        match reg_type:
+            case 'rigid':
+                self.reg = pycpd.RigidRegistration(X=target_points, Y=source_points)
+            case 'affine':
+                self.reg = pycpd.AffineRegistration(X=target_points, Y=source_points)
+            case 'deformable':
+                self.reg = pycpd.DeformableRegistration(X=target_points, Y=source_points)
+            case _:
+                raise ValueError(f"Unsupported registration type: {reg_type}")
 
     def cpd_registration_run_single_iteration(self : 'Case', inplace : bool = True) -> np.ndarray:
         """
         Run a single iteration of the Coherent Point Drift (CPD) registration algorithm.
-        Parameters:
-        - self ('Case'): The Case object on which the registration algorithm will be applied.
-        - inplace (bool): If True, the registered points will be stored in the 'points' attribute of the Case object. 
-                          If False, the registered points will be returned without modifying the Case object.
+
+        Args:
+            self (Case): The Case object on which the registration algorithm will be applied.
+            inplace (bool): If True, the registered points will be stored in the 'points' attribute of the Case object.
+                            If False, the registered points will be returned without modifying the Case object.
+
         Returns:
-        - numpy.ndarray: The registered points after a single iteration of the CPD registration algorithm.
-        """        
+            numpy.ndarray: The registered points after a single iteration of the CPD registration algorithm.
+        """
+      
         self.reg.iterate()
         if inplace:
             self.points = self.reg.TY
@@ -300,12 +308,15 @@ class Case:
     def cpd_registration_run_all_iterations(self : 'Case', visualize_cb : callable = None) -> None:
         """
         Run all iterations of the Coherent Point Drift (CPD) registration algorithm.
-        Parameters:
-        - self ('Case'): The Case object on which the registration algorithm will be applied.
-        - visualize_cb (callable): A callback function that will be called after each iteration of the registration algorithm.
+
+        Args:
+            self (Case): The Case object on which the registration algorithm will be applied.
+            visualize_cb (callable): A callback function that will be called after each iteration of the registration algorithm.
+
         Returns:
-        None
-        """        
+            None
+        """
+
         self.reg.register(visualize_cb)
 
     def separate_regions(self):
