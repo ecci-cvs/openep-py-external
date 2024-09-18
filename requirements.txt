@@ -16,3 +16,4 @@ trimesh
 shapely
 meshio
 pynrrd
+pycpd

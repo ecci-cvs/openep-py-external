@@ -81,6 +81,7 @@ from typing import Optional, Tuple, List
 import numpy as np
 import scipy.stats
 import pyvista
+import pycpd
 
 from .surface import Fields
 from .electric import Electric, Electrogram, Annotations, ElectricSurface
@@ -261,6 +262,62 @@ class Case:
             normals=mesh.point_normals[nearest_point_indices],
             is_electrical=self.electric._is_electrical
         )
+
+    def cpd_registration_init(self, reg_type : str, target : 'Case'):
+        """
+        Initializes the registration process using the specified registration type and target case.
+
+        Args:
+            reg_type (str): The type of registration to be performed. Valid options are 'rigid', 'affine', and 'deformable'.
+            target (Case): The target case to register to.
+
+        Returns:
+            None
+        """
+        source_points = self.points
+        target_points = target.points
+
+        match reg_type:
+            case 'rigid':
+                self.reg = pycpd.RigidRegistration(X=target_points, Y=source_points)
+            case 'affine':
+                self.reg = pycpd.AffineRegistration(X=target_points, Y=source_points)
+            case 'deformable':
+                self.reg = pycpd.DeformableRegistration(X=target_points, Y=source_points)
+            case _:
+                raise ValueError(f"Unsupported registration type: {reg_type}")
+
+    def cpd_registration_run_single_iteration(self : 'Case', inplace : bool = True) -> np.ndarray:
+        """
+        Run a single iteration of the Coherent Point Drift (CPD) registration algorithm.
+
+        Args:
+            self (Case): The Case object on which the registration algorithm will be applied.
+            inplace (bool): If True, the registered points will be stored in the 'points' attribute of the Case object.
+                            If False, the registered points will be returned without modifying the Case object.
+
+        Returns:
+            numpy.ndarray: The registered points after a single iteration of the CPD registration algorithm.
+        """
+      
+        self.reg.iterate()
+        if inplace:
+            self.points = self.reg.TY
+        return self.reg.TY
+
+    def cpd_registration_run_all_iterations(self : 'Case', visualize_cb : callable = None) -> None:
+        """
+        Run all iterations of the Coherent Point Drift (CPD) registration algorithm.
+
+        Args:
+            self (Case): The Case object on which the registration algorithm will be applied.
+            visualize_cb (callable): A callback function that will be called after each iteration of the registration algorithm.
+
+        Returns:
+            None
+        """
+
+        self.reg.register(visualize_cb)
 
     def separate_regions(self):
         """Create a list of Case objects by separating regions defined in case.fields.cell_regions."""
